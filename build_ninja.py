@@ -6,6 +6,8 @@ import sys
 ninja_rule_file = "rules.ninja"
 ninja_build_file = "build.ninja"
 
+WORKSPACE_DIR = os.getcwd()
+BUILD_DIR = WORKSPACE_DIR+"/build"
 ELF_NAME = 'kernel.elf'
 CROSS_COMPILER = 'aarch64-linux-gnu'
 CC = CROSS_COMPILER+'-gcc'
@@ -13,10 +15,9 @@ AS = CROSS_COMPILER+'-as'
 LD = CROSS_COMPILER+'-ld'
 OBJDUMP = CROSS_COMPILER+'-objdump'
 LINKER = 'linker.ld'
+PREPROCESSED_LINKER = BUILD_DIR + '/linker.ld.gen'
 CFLAGS =  '-mcpu=cortex-a57 -Wall -Wextra -g -nostdlib'
 # ASM_FLAGS = '-mcpu=cortex-a57 -g'
-WORKSPACE_DIR = os.getcwd()
-BUILD_DIR = WORKSPACE_DIR+"/build"
 OBJDUMP_NAME = 'kernel.dump'
 
 #generats rule.ninja
@@ -42,8 +43,15 @@ def generate_ninja_rules():
   # Define linker rule 
   writer.rule(
       name="link",
-      command=f"{LD} -T {LINKER} $in -o $out",
+      command=f"{LD} -T {PREPROCESSED_LINKER} $in -o $out",
       description="linker to generate the elf"
+  )
+  writer.newline()
+  #define generate linker script
+  writer.rule(
+      name="gen-link",
+      command=f"{CC} -xc -P -E $in > $out",
+      description="linker the preprocessed linker script"
   )
   writer.newline()
   # Define objdump rule 
@@ -87,6 +95,9 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
     writer.newline()
     # writer.build(object_file, rule="cc", inputs=[source_file], variables={'cflags' : flags})
   
+  #generate linker script
+  writer.build(PREPROCESSED_LINKER,rule="gen-link", inputs=[LINKER])
+  writer.newline()
   #link to generate elf
   writer.build(os.path.join(build_dir,ELF_NAME),rule="link", inputs=object_files)
   writer.newline()

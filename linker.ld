@@ -1,11 +1,11 @@
-ENTRY(_start)
+#include "qemu_config.h"
 
-STACKTOP = 0x41000000;
+ENTRY(_start)
 
 SECTIONS
 {
 	/* Starts at LOADER_ADDR. */
-	. = 0x40000000;
+	. = KERNEL_ENTRY_ADDR;
 	__start = .;
 	__text_start = .;
 	.text :
@@ -34,7 +34,7 @@ SECTIONS
 	__bss_end = .;
 	__end = .;
 
-	. = STACKTOP ; /* stack memory */
+	. = . + STACK_SIZE ; /* stack memory */
 	stack_top = .;
 }
 __bss_size = (__bss_end - __bss_start)>>3;
