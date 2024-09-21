@@ -38,7 +38,7 @@
 #define AARCH64_EXC_SERR_AARCH32  (0x34)
 
 #if defined(ASM_FILE)
-#define vector_table_align .align 11    /* Vector tables must be placed at a 2KB-aligned address */
+#define vector_table_align .align 12    /* Vector tables must be placed at a 2KB-aligned address */
 #define vector_entry_align .align 7     /* Each entry is 128B in size*/
 #define text_align .align  2            /* Text alignment */
 #endif /* ASM_FILE */

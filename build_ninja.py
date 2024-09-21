@@ -16,7 +16,7 @@ LD = CROSS_COMPILER+'-ld'
 OBJDUMP = CROSS_COMPILER+'-objdump'
 LINKER = 'linker.ld'
 PREPROCESSED_LINKER = BUILD_DIR + '/linker.ld.gen'
-CFLAGS =  '-mcpu=cortex-a57 -Wall -Wextra -g -nostdlib'
+CFLAGS =  '-mcpu=cortex-a57 -Wall -Wextra -g -nostdlib -fpic'
 # ASM_FLAGS = '-mcpu=cortex-a57 -g'
 OBJDUMP_NAME = 'kernel.dump'
 
@@ -43,7 +43,7 @@ def generate_ninja_rules():
   # Define linker rule 
   writer.rule(
       name="link",
-      command=f"{LD} -T {PREPROCESSED_LINKER} $in -o $out",
+      command=f"{LD} -pie -T {PREPROCESSED_LINKER} $in -o $out",
       description="linker to generate the elf"
   )
   writer.newline()

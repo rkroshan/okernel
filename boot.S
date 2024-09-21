@@ -1,7 +1,8 @@
+.section .boot_text
+
 #define ASM_FILE   1
 
-
-	.globl _start
+.global _start
 _start:
 	/* check CPU ID = 0x0, or jump to hang */
 	mrs	x0, mpidr_el1
@@ -18,7 +19,7 @@ reset_vector_base:
 			vbar_el3, vbar_el2
 			scr_el3, hcr_el2
 	*/
-	ldr	x1, = vectors
+	adrp	x1, vectors
 	msr	vbar_el1, x1
 
 boot_cpu:
