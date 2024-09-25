@@ -4,7 +4,7 @@
 #include "aarch64.h"
 #include "uart.h"
 #include "timer.h"
-
+#include "atomic.h"
 
 /* Exception SVC Test */
 void exception_svc(void)
@@ -29,7 +29,20 @@ void exception_svc_test(void)
 	uart_puts("exception_svc_test... done\n");
 }
 
+/*atomic relaxed test*/
+void atomic_relaxed_test(void)
+{
+	_Atomic int atomic_var = 0;
+
+    // atomic_fetch_add(&atomic_var, 1);
+	atomic_store_relaxed(&atomic_var,1);
+	atomic_load_relaxed(&atomic_var);
+
+    uart_puts("\nAtomic Value: "); uart_puthex((uint64_t)atomic_var);uart_puts("\n"); 
+}
+
 int main(void) {
+	atomic_relaxed_test();
 	// exception_svc_test();
 	timer_test();
 }
