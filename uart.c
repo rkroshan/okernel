@@ -1,7 +1,8 @@
 #include "uart.h"
+#include "qemu_config.h"
 
-volatile unsigned int * const UART0DR = (unsigned int *) 0x09000000;
-volatile unsigned int * const UART0FR = (unsigned int *) 0x09000018;
+volatile unsigned int * const UART0DR = (unsigned int *) VIRT_UART_ADDR;
+volatile unsigned int * const UART0FR = (unsigned int *) VIRT_UART_ADDR + 0x18;
 
 
 void uart_putc(const char c)
@@ -27,5 +28,15 @@ void uart_puthex(uint64_t n)
 void uart_puts(const char *s) {
 	for (int i = 0; s[i] != '\0'; i ++)
 		uart_putc((unsigned char)s[i]);
+}
+
+char uart_read()
+{
+    return (char)*UART0DR;
+}
+
+void uart_write(char data)
+{
+    uart_putc(data);
 }
 

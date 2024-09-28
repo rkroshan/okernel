@@ -2,6 +2,7 @@
  * Reference: ARM® Architecture Reference Manual ARMv8, for ARMv8-A architecture profile
  */
 #include <stdint.h>
+#include "atomic.h"
 #include "aarch64.h"
 
 /* CurrentEL, Current Exception Level
@@ -24,6 +25,23 @@ uint32_t get_current_el(void)
 {
 	uint32_t current_el = raw_read_current_el();
 	return ((current_el >> CURRENT_EL_SHIFT) & CURRENT_EL_MASK);
+}
+
+/*Disable Advance SIMD instruction to get trapped*/
+void enable_fp_simd_access() {
+    unsigned long cpacr_el1;
+
+    // Read CPACR_EL1 register
+    __asm__ volatile ("mrs %0, CPACR_EL1" : "=r" (cpacr_el1));
+
+    // Set bits [21:20] to '11' to allow full access to SIMD/FP
+    cpacr_el1 |= (0x3 << 20);
+
+    // Write back to CPACR_EL1
+    __asm__ volatile ("msr CPACR_EL1, %0" : : "r" (cpacr_el1));
+
+	//setup the instruction since we are not context switiching
+	instruction_barrier();
 }
 
 /* DAIF, Interrupt Mask Bits

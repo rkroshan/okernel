@@ -12,4 +12,7 @@
 /*Stack Size*/
 #define STACK_SIZE  0x1000
 
+/*For Qemu Virt Aarch64 Arm SOC*/
+#define VIRT_UART_ADDR      0x09000000
+
 #endif

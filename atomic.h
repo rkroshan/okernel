@@ -45,3 +45,8 @@
 			break;                                                 \
 		}                                                              \
 	} while (0)
+
+#define instruction_barrier()											\
+	do {															\
+		__asm__ volatile ("isb" ::: "memory");						\
+	}while(0)

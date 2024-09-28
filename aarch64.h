@@ -55,6 +55,8 @@ uint64_t raw_read_rvbar_el1(void);
 void raw_write_rvbar_el1(uint64_t rvbar_el1);
 uint64_t raw_read_vbar_el1(void);
 void raw_write_vbar_el1(uint64_t vbar_el1);
+/*For disabling advance simd instruction trap*/
+void enable_fp_simd_access();
 
 /* CNTV_CTL_EL0, Counter-timer Virtual Timer Control register */
 uint32_t raw_read_cntv_ctl(void);

@@ -41,8 +41,17 @@ void atomic_relaxed_test(void)
     uart_puts("\nAtomic Value: "); uart_puthex((uint64_t)atomic_var);uart_puts("\n"); 
 }
 
+/*printk functionality test*/
+void print_test()
+{
+    printk("Hi just checking %d %x %s %u %d\n", 123, 0x123, "0x123", -123, -123);
+}
+
 int main(void) {
+	enable_fp_simd_access();
 	atomic_relaxed_test();
+	print_test();
+	// uart_puthex(get_current_el()); uart_puts("\n");
 	// exception_svc_test();
 	timer_test();
 }
