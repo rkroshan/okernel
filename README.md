@@ -1,7 +1,8 @@
 ## ninja build
 *	Prerequisite
 	```
-	sudo apt install ninja-build gcc-aarch64-linux-gnu qemu-system-aarch64
+	sudo apt install ninja-build gcc-aarch64-linux-gnu qemu-system-aarch64 doxygen doxygen-doc doxygen-gui doxygen-latex
+
 	```
 	```
 	python3 -m pip install ninja_syntax
@@ -18,6 +19,7 @@
 # armv8-bare-metal
 *	Purpose
 	* It's a bare-metal study in QEMU (-M virt -cpu cortex-a57)
+	* _start -> main()
 *	How to run
 	```
 	# export PATH inclueding your cross compile tool

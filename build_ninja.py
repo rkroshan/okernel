@@ -19,6 +19,10 @@ PREPROCESSED_LINKER = BUILD_DIR + '/linker.ld.gen'
 CFLAGS =  '-mcpu=cortex-a57 -Wall -Wextra -g -nostdlib -fpic'
 # ASM_FLAGS = '-mcpu=cortex-a57 -g'
 OBJDUMP_NAME = 'kernel.dump'
+# Docs
+DOXY_HTML_FILE = os.path.join(WORKSPACE_DIR,'docs','html','index.html')
+DOXYGEN = 'doxygen'
+DOXYGEN_CONFIG = os.path.join(WORKSPACE_DIR, 'okernel_doxy.config')
 
 #generats rule.ninja
 def generate_ninja_rules():
@@ -59,6 +63,13 @@ def generate_ninja_rules():
       name="objdump",
       command=f"{OBJDUMP} -D $in > $out",
       description="objdump of kernel elf"
+  )
+  writer.newline()
+  # Define generate docs rule 
+  writer.rule(
+      name="gen_docs",
+      command=f"GIT_COMMIT_HASH=`git describe --tags --dirty --always` {DOXYGEN} {DOXYGEN_CONFIG} > /dev/null 2>&1",
+      description="generating docs"
   )
   #close the rules file
   file.close()
@@ -104,6 +115,8 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
 
   #objdump the kernel elf
   writer.build(os.path.join(build_dir, OBJDUMP_NAME), rule="objdump", inputs=[os.path.join(build_dir,ELF_NAME)])
+  #generate the docs
+  writer.build(DOXY_HTML_FILE, rule="gen_docs", inputs=[os.path.join(build_dir, OBJDUMP_NAME)])
   #close the build.ninja file
   file.close()
 
