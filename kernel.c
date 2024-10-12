@@ -63,7 +63,7 @@ void atomic_relaxed_test(void)
 /*printk functionality test*/
 void print_test()
 {
-    printk("Hi just checking %d %x %s %u %d\n", 123, 0x123, "0x123", -123, -123);
+    printk("Hi just checking %d %x %s %u %d %b\n", 123, 4096, "0x123", -123, -123, 1024);
 }
 
 /**

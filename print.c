@@ -52,6 +52,29 @@ static int udecimal_to_string(char *buffer, int position, uint64_t digits)
     return size;
 }
 
+static int udecimal_to_binary(char *buffer, int position, uint64_t digits)
+{
+    char digits_buffer[100];
+    int size = 0;
+    int i = 0;
+    if(digits == 0){
+        buffer[position++] = 0 + 48;
+        size++;
+    }
+    else{
+        while(digits)
+        {
+            uint8_t bit = digits & 1;
+            digits_buffer[size++] = bit + 48;
+            digits = digits >> 1;
+        }
+        for (i = size-1; i >= 0; i--) {
+            buffer[position++] = digits_buffer[i];
+        }
+    }
+    return size;
+}
+
 static int decimal_to_string(char *buffer, int position, int64_t digits)
 {
     int size = 0;
@@ -102,7 +125,11 @@ int printk(const char *format, ...)
                     integer = va_arg(args, int64_t);
                     buffer_size += udecimal_to_string(buffer, buffer_size, (uint64_t)integer);
                     break;
-
+                
+                case 'b':
+                    integer = va_arg(args, int64_t);
+                    buffer_size += udecimal_to_binary(buffer, buffer_size, (uint64_t)integer);
+                    break;
                 case 'd':
                     integer = va_arg(args, int32_t);
                     /*https://stackoverflow.com/questions/57748347/why-can-i-import-negative-numbers-as-int-but-not-as-long-int-or-other-larger-da*/
