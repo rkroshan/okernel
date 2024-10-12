@@ -5,6 +5,7 @@
 #include "uart.h"
 #include "timer.h"
 #include "atomic.h"
+#include "assert.h"
 
 /* Exception SVC Test */
 void exception_svc(void)
@@ -15,6 +16,16 @@ Supervisor call to allow application code to call the OS.
 */
 	asm("svc #0xdead");
 }
+
+/**
+ * @brief assert test
+ * 
+*/
+void assert_test(void)
+{
+	assert(123 == 9);
+}
+
 
 /**
  * @brief est spx elx sync exception
@@ -79,6 +90,7 @@ void print_test()
 int main(void) {
 	enable_fp_simd_access();
 	atomic_relaxed_test();
+	// assert_test();
 	print_test();
 	// exception_svc_test();
 	timer_test();
