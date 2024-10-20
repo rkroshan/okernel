@@ -3,3 +3,4 @@
 .vscode/
 /docs/**
 !/docs/.gitkeep
+.format-stamp

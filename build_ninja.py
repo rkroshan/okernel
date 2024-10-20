@@ -23,7 +23,8 @@ OBJDUMP_NAME = 'kernel.dump'
 DOXY_HTML_FILE = os.path.join(WORKSPACE_DIR,'docs','html','index.html')
 DOXYGEN = 'doxygen'
 DOXYGEN_CONFIG = os.path.join(WORKSPACE_DIR, 'okernel_doxy.config')
-
+# formatting dummy file for dependency chain
+FORMAT_FILE = '.format-stamp'
 #generats rule.ninja
 def generate_ninja_rules():
   """
@@ -71,6 +72,13 @@ def generate_ninja_rules():
       command=f"GIT_COMMIT_HASH=`git describe --tags --dirty --always` {DOXYGEN} {DOXYGEN_CONFIG} > /dev/null 2>&1",
       description="generating docs"
   )
+  writer.newline()
+  # format source files using clang-format 
+  writer.rule(
+      name="format_files",
+      command=f"clang-format -i *.c *.h && touch {FORMAT_FILE}",
+      description="formatting files using .clang-format"
+  )
   #close the rules file
   file.close()
 
@@ -93,16 +101,20 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
       writer.include(ninja_rule_file)
       writer.newline()
   else:
-    print("rules.ninja doesnot exist, exiting...")
+    print("rules.ninja doesn't exist, exiting...")
     sys.exit(0)
 
+  # format the source files first
+  writer.build(FORMAT_FILE, rule="format_files", inputs=None)
+  writer.newline()
+
+  # Build targets for each source file
   extn_pattern = r"\.(" + "|".join(extn) + ")$"
   object_files = []
-  # Build targets for each source file
   for source_file in source_files:
     object_file = build_dir + "/" +re.sub(extn_pattern, ".o", os.path.basename(source_file))
     object_files.append(object_file)
-    writer.build(object_file, rule="cc", inputs=[source_file])
+    writer.build(object_file, rule="cc", inputs=[source_file], order_only=[FORMAT_FILE])
     writer.newline()
     # writer.build(object_file, rule="cc", inputs=[source_file], variables={'cflags' : flags})
   
@@ -110,13 +122,15 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
   writer.build(PREPROCESSED_LINKER,rule="gen-link", inputs=[LINKER])
   writer.newline()
   #link to generate elf
-  writer.build(os.path.join(build_dir,ELF_NAME),rule="link", inputs=object_files)
+  elf_deps = object_files
+  elf_deps.append(PREPROCESSED_LINKER)
+  writer.build(os.path.join(build_dir,ELF_NAME),rule="link", inputs=object_files, order_only=elf_deps)
   writer.newline()
 
   #objdump the kernel elf
-  writer.build(os.path.join(build_dir, OBJDUMP_NAME), rule="objdump", inputs=[os.path.join(build_dir,ELF_NAME)])
+  writer.build(os.path.join(build_dir, OBJDUMP_NAME), rule="objdump", inputs=[os.path.join(build_dir,ELF_NAME)], order_only=[os.path.join(build_dir,ELF_NAME)])
   #generate the docs
-  writer.build(DOXY_HTML_FILE, rule="gen_docs", inputs=[os.path.join(build_dir, OBJDUMP_NAME)])
+  writer.build(DOXY_HTML_FILE, rule="gen_docs", inputs=None, order_only=[os.path.join(build_dir, OBJDUMP_NAME)])
   #close the build.ninja file
   file.close()
 
