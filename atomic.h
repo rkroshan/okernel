@@ -16,9 +16,9 @@
 
 // Shortcuts for store-relaxed and store-release
 #define atomic_store_relaxed(p, v)                                             \
-	atomic_store_explicit((p), (v), memory_order_relaxed)
+  atomic_store_explicit((p), (v), memory_order_relaxed)
 #define atomic_store_release(p, v)                                             \
-	atomic_store_explicit((p), (v), memory_order_release)
+  atomic_store_explicit((p), (v), memory_order_release)
 
 // Device memory fences
 //
@@ -28,25 +28,36 @@
 //
 // Note that the instructions here are the same for AArch64 and ARMv8 AArch32.
 #define atomic_device_fence(p)                                                 \
-	do {                                                                   \
-		switch (p) {                                                   \
-		case memory_order_relaxed:                                     \
-			atomic_thread_fence(memory_order_relaxed);             \
-			break;                                                 \
-		case memory_order_acquire:                                     \
-		case memory_order_consume:                                     \
-			__asm__ volatile("dmb ld" ::: "memory");               \
-			break;                                                 \
-		case memory_order_release:                                     \
-		case memory_order_acq_rel:                                     \
-		case memory_order_seq_cst:                                     \
-		default:                                                       \
-			__asm__ volatile("dmb sy" ::: "memory");               \
-			break;                                                 \
-		}                                                              \
-	} while (0)
+  do {                                                                         \
+    switch (p) {                                                               \
+    case memory_order_relaxed:                                                 \
+      atomic_thread_fence(memory_order_relaxed);                               \
+      break;                                                                   \
+    case memory_order_acquire:                                                 \
+    case memory_order_consume:                                                 \
+      __asm__ volatile("dmb ld" ::: "memory");                                 \
+      break;                                                                   \
+    case memory_order_release:                                                 \
+    case memory_order_acq_rel:                                                 \
+    case memory_order_seq_cst:                                                 \
+    default:                                                                   \
+      __asm__ volatile("dmb sy" ::: "memory");                                 \
+      break;                                                                   \
+    }                                                                          \
+  } while (0)
 
-#define instruction_barrier()											\
-	do {															\
-		__asm__ volatile ("isb" ::: "memory");						\
-	}while(0)
+#define instruction_barrier()                                                  \
+  do {                                                                         \
+    __asm__ volatile("isb" ::: "memory");                                      \
+  } while (0)
+
+#define data_barrier()                                                         \
+  do {                                                                         \
+    __asm__ volatile("dsb sy" ::: "memory");                                   \
+  } while (0)
+
+#define BARRIER()                                                              \
+  do {                                                                         \
+    __asm__ volatile("isb" ::: "memory");                                      \
+    __asm__ volatile("dsb sy" ::: "memory");                                   \
+  } while (0)

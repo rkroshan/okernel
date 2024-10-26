@@ -1,7 +1,7 @@
 ## ninja build
 *	Prerequisite
 	```
-	sudo apt install ninja-build gcc-aarch64-linux-gnu qemu-system-aarch64 doxygen doxygen-doc doxygen-gui doxygen-latex clang-format
+	sudo apt install ninja-build gcc-aarch64-linux-gnu qemu-system-aarch64 doxygen doxygen-doc doxygen-gui doxygen-latex clang-format llvm
 
 	```
 	```

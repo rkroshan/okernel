@@ -20,19 +20,25 @@ SECTIONS
 	. = 0x0;
 	.text : AT (KERNEL_ENTRY_ADDR)
 	{
-	KEEP(*(.boot_text))
-	KEEP(*(.text.boot))
-	*(.text)
+		KEEP(*(.text.boot))
+		*(SORT_BY_ALIGNMENT(.text .text.*))
+		KEEP(*(.text.debug));
 	} : text
 	. = ALIGN(4096); /* align to page size */
 
 	rodata_base = .;
 	.rodata : {
-		*(SORT_BY_ALIGNMENT(.rodata))
+		*(SORT_BY_ALIGNMENT(.rodata .rodata.*))
 	} : rodata
 
 	. = ALIGN(8);
 	.rela.dyn : { *(.rela.dyn) }
+
+	. = ALIGN(8);
+	.gnu.hash : { *(.gnu.hash) }
+
+	. = ALIGN(8);
+	.note : { *(.note) *(.note.*) }
 
 	. = ALIGN(4096);
 	.dynsym : { *(.dynsym) }
@@ -41,23 +47,21 @@ SECTIONS
 
 	. = ALIGN(4096);
 	.dynamic : { *(.dynamic) } : dynamic : dynreloc
-
-	/* Package data for RootVM */
-	. = ALIGN(4096);
-
+	
+	/*Neccessary for enhancing security as NX for data section*/
+	. = ALIGN(0x200000);
 	.data :
 	{
-	*(.data)
+		*(SORT_BY_ALIGNMENT(.data .data.*))
 	} : data
 
-	. = ALIGN(4096); /* align to page size */
-
-	.bss :
+	. = ALIGN(8); 
+	.bss (NOLOAD) :
 	{
-	bss = .;
-	*(.bss)
+		*(SORT_BY_ALIGNMENT(.bss .bss.*))
+		*(COMMON)
 	}
-	. = ALIGN(8); /* align to page size */
+	. = ALIGN(64); /* align to page size */
 
 	. = . + STACK_SIZE ; /* stack memory */
 	stack_top = . + _start_phy;

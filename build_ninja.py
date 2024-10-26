@@ -9,16 +9,16 @@ ninja_build_file = "build.ninja"
 WORKSPACE_DIR = os.getcwd()
 BUILD_DIR = WORKSPACE_DIR+"/build"
 ELF_NAME = 'kernel.elf'
-CROSS_COMPILER = 'aarch64-linux-gnu'
-CC = CROSS_COMPILER+'-gcc'
-AS = CROSS_COMPILER+'-as'
-LD = CROSS_COMPILER+'-ld'
-OBJDUMP = CROSS_COMPILER+'-objdump'
+CROSS_COMPILER = 'clang'
+CC = CROSS_COMPILER
+LD = CROSS_COMPILER
+OBJDUMP = 'llvm-objdump'
 LINKER = 'linker.ld'
 PREPROCESSED_LINKER = BUILD_DIR + '/linker.ld.gen'
-CFLAGS =  '-mcpu=cortex-a57 -Wall -Wextra -g -nostdlib -fpic'
-# ASM_FLAGS = '-mcpu=cortex-a57 -g'
+CFLAGS =  '--target=aarch64-linux-gnu -march=armv8.2-a -mcpu=cortex-a72 -Os -Wall -Wextra -g -ffreestanding -nostdlib -fpic'
+LDFLAGS = '--target=aarch64-linux-gnu -nostdlib -fuse-ld=lld -pie -Wl,-z,max-page-size=4096 -Wl,-z,separate-loadable-segments -Wl,-Map='+os.path.join(BUILD_DIR,ELF_NAME)+'.map'
 OBJDUMP_NAME = 'kernel.dump'
+ELFDUMP_NAME = 'kernel.elf.dump'
 # Docs
 DOXY_HTML_FILE = os.path.join(WORKSPACE_DIR,'docs','html','index.html')
 DOXYGEN = 'doxygen'
@@ -48,7 +48,7 @@ def generate_ninja_rules():
   # Define linker rule 
   writer.rule(
       name="link",
-      command=f"{LD} -pie -T {PREPROCESSED_LINKER} $in -o $out",
+      command=f"{LD} {LDFLAGS} -T {PREPROCESSED_LINKER} -o $out $in",
       description="linker to generate the elf"
   )
   writer.newline()
@@ -64,6 +64,13 @@ def generate_ninja_rules():
       name="objdump",
       command=f"{OBJDUMP} -D $in > $out",
       description="objdump of kernel elf"
+  )
+  writer.newline()
+  # Define readelf rule 
+  writer.rule(
+      name="readelf",
+      command=f"llvm-readelf -a $in > $out",
+      description="dumping elf information"
   )
   writer.newline()
   # Define generate docs rule 
@@ -122,13 +129,13 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
   writer.build(PREPROCESSED_LINKER,rule="gen-link", inputs=[LINKER])
   writer.newline()
   #link to generate elf
-  elf_deps = object_files
-  elf_deps.append(PREPROCESSED_LINKER)
-  writer.build(os.path.join(build_dir,ELF_NAME),rule="link", inputs=object_files, order_only=elf_deps)
+  writer.build(os.path.join(build_dir,ELF_NAME),rule="link", inputs=object_files, order_only=[PREPROCESSED_LINKER])
   writer.newline()
 
   #objdump the kernel elf
   writer.build(os.path.join(build_dir, OBJDUMP_NAME), rule="objdump", inputs=[os.path.join(build_dir,ELF_NAME)], order_only=[os.path.join(build_dir,ELF_NAME)])
+  #dump the kernel elf information
+  writer.build(os.path.join(build_dir, ELFDUMP_NAME), rule="readelf", inputs=[os.path.join(build_dir,ELF_NAME)], order_only=[os.path.join(build_dir,ELF_NAME)])
   #generate the docs
   writer.build(DOXY_HTML_FILE, rule="gen_docs", inputs=None, order_only=[os.path.join(build_dir, OBJDUMP_NAME)])
   #close the build.ninja file

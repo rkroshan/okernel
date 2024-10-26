@@ -1,4 +1,4 @@
-.section .boot_text
+.section .text.vectors
 
 #define ASM_FILE   1
 

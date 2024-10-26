@@ -1,5 +1,5 @@
 #if !defined(_UART_H)
-#define  _UART_H 
+#define _UART_H
 #include <stdint.h>
 
 void uart_putc(const char c);
@@ -10,4 +10,4 @@ char uart_read();
 void uart_write(char data);
 
 int printk(const char *format, ...);
-#endif  /*  _UART_H   */
+#endif /*  _UART_H   */

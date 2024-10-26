@@ -1,0 +1,10 @@
+- timer module cleaning
+- smp enable
+- ipi and mailbox implementation
+- heap implementation
+- file system support
+- posix compliance
+
+- separate test module
+- static analysis support
+- cvrg support
