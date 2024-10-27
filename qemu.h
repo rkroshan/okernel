@@ -41,5 +41,6 @@
 #define GIC_PRI_MASK (0x0f)
 
 #define TIMER_IRQ (27) /** Timer IRQ  */
+#define PLATFORM_TIMER_INTERRUPT_INTERVAL (1)
 
 #endif

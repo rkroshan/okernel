@@ -14,7 +14,7 @@
 #include "psw.h"
 #include "uart.h"
 
-extern void timer_handler(void);
+extern void platform_timer_handler(void);
 
 void handle_exception(exception_frame *exc) {
   uart_puts("An exception occur:\n");
@@ -108,7 +108,7 @@ void irq_handle() {
   }
   gic_disable_irq(irq);          /* Mask this irq */
   gic_deactivate_interrupt(irq); /* Send EOI for this irq line */
-  timer_handler();
+  platform_timer_handler();
   gic_enable_irq(irq); /* unmask this irq line */
 
 restore_irq_out:

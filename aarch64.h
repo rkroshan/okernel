@@ -63,17 +63,4 @@ uint64_t get_mpidr();
 /*get far el1 reg value*/
 uint64_t get_FAR_EL1();
 
-/* CNTV_CTL_EL0, Counter-timer Virtual Timer Control register */
-uint64_t raw_read_cntv_ctl(void);
-void disable_cntv(void);
-void enable_cntv(void);
-/* CNTFRQ_EL0, Counter-timer Frequency register */
-uint64_t raw_read_cntfrq_el0(void);
-void raw_write_cntfrq_el0(uint64_t cntfrq_el0);
-/* CNTVCT_EL0, Counter-timer Virtual Count register */
-uint64_t raw_read_cntvct_el0(void);
-/* CNTV_CVAL_EL0, Counter-timer Virtual Timer CompareValue register */
-uint64_t raw_read_cntv_cval_el0(void);
-void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0);
-
 #endif /*  _AARCH64_H   */

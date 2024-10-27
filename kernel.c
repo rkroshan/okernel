@@ -84,10 +84,19 @@ void print_test() {
  */
 int main(void) {
   enable_fp_simd_access();
+
+  printk("CurrentEL = %x\n", raw_read_current_el());
+  printk("RVBAR_EL1 = %x\n", raw_read_rvbar_el1());
+  printk("VBAR_EL1 = %x\n", raw_read_vbar_el1());
+  printk("DAIF = %x\n", raw_read_daif());
+
   atomic_relaxed_test();
   // assert_test();
   print_test();
   // exception_svc_test();
-  timer_test();
+  // GIC Init
+  init_interrupt_controller();
+  // Platoform timer init
+  platform_timer_init();
   return 0;
 }
