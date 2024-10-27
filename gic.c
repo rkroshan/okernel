@@ -1,20 +1,3 @@
-/* -*- mode: c; coding:utf-8 -*- */
-/**********************************************************************/
-/*  OS kernel sample                                                  */
-/*  Copyright 2014 Takeharu KATO                                      */
-/*                                                                    */
-/*  Arm Generic Interrupt Controller(PL390)                           */
-/*                                                                    */
-/**********************************************************************/
-
-/**********************************************************************/
-/*  armv8-bare-metal                                                  */
-/*  Copyright 2018 Nienfeng Yao                                       */
-/*                                                                    */
-/*  Reference: ARM® Generic Interrupt Controller Architecture         */
-/*      Specification GIC architecture version 3.0 and version 4.0    */
-/*                                                                    */
-/**********************************************************************/
 #include "gic.h"
 #include "aarch64.h"
 #include "assert.h"

@@ -3,5 +3,5 @@
 .vscode/
 /docs/**
 !/docs/.gitkeep
-.format-stamp
+.format*-stamp
 board.h
