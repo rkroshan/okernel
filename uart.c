@@ -1,5 +1,5 @@
 #include "uart.h"
-#include "qemu_config.h"
+#include "board.h"
 
 volatile unsigned int *const UART0DR = (unsigned int *)VIRT_UART_ADDR;
 volatile unsigned int *const UART0FR = (unsigned int *)VIRT_UART_ADDR + 0x18;

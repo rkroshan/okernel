@@ -15,12 +15,12 @@
 /*      Specification GIC architecture version 3.0 and version 4.0    */
 /*                                                                    */
 /**********************************************************************/
-#include "gic_v3.h"
+#include "gic.h"
 #include "aarch64.h"
 #include "assert.h"
 #include "board.h"
 #include "exception.h"
-#include "gicv3_registers.h"
+#include "gic_registers.h"
 #include "uart.h"
 #include <stddef.h>
 #include <stdint.h>
@@ -501,13 +501,13 @@ void gic_set_irq_cfg(irq_no irq, uint8_t config) {
         @param[in] ctrlr   IRQ controller information
         @param[in] irq     IRQ number
  */
-static void gic_v3_eoir1_el1(irq_no irq) {
+static void gic_eoir1_el1(irq_no irq) {
   uint64_t eoir1_el1 = (uint64_t)irq;
   data_barrier();
   ASM_MSR_ICC_EOIR1_EL1(eoir1_el1);
 }
 
-static void gic_v3_deactivate_interrupt(irq_no irq) {
+static void _gic_deactivate_interrupt(irq_no irq) {
   uint64_t dir_el1 = (uint64_t)irq;
   data_barrier();
   ASM_MSR_ICC_DIR_EL1(dir_el1);
@@ -530,12 +530,12 @@ void gic_deactivate_interrupt(irq_no irq) {
 
   if (eoi_mode) {
     /*need to drop priority*/
-    gic_v3_eoir1_el1(irq);
+    gic_eoir1_el1(irq);
     /*deactivate seperately*/
-    gic_v3_deactivate_interrupt(irq);
+    _gic_deactivate_interrupt(irq);
   } else {
     /*drop and activate happens just by writing to eoi reg*/
-    gic_v3_eoir1_el1(irq);
+    gic_eoir1_el1(irq);
   }
 }
 
@@ -561,4 +561,16 @@ void gic_v3_initialize(void) {
  *
  * @return irq_no
  */
-irq_no gic_v3_find_pending_irq() { return (uint32_t)gic_acknowledge_irq(); }
+irq_no gic_find_pending_irq() { return (uint32_t)gic_acknowledge_irq(); }
+
+/**
+ * @brief intialise interrupt controller
+ *
+ */
+void init_interrupt_controller(void) {
+#ifdef GIC_V3
+  gic_v3_initialize();
+#else
+#error "gic_v3 interrupt controller is implemented as of now"
+#endif
+}

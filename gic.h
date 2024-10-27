@@ -15,8 +15,8 @@
 /*      Specification GIC architecture version 3.0 and version 4.0    */
 /*                                                                    */
 /**********************************************************************/
-#if !defined(_GIC_V3_H)
-#define _GIC_V3_H
+#ifndef __GIC_H__
+#define __GIC_H__
 
 #include "exception.h"
 #include "util.h"
@@ -218,10 +218,10 @@ this register determines only Group 0 interrupt preemption. */
 #define GICD_ENABLE_GET_N(x) ((x) >> 5)
 #define GIC_ICFGR_GET_N(x) ((x) >> 4)
 
-void gic_v3_initialize(void);
+void init_interrupt_controller(void);
 void gic_deactivate_interrupt(irq_no irq);
-irq_no gic_v3_find_pending_irq(void);
+irq_no gic_find_pending_irq(void);
 void gic_disable_irq(irq_no irq);
 void gic_enable_irq(irq_no irq);
 void gic_clear_pending(irq_no irq);
-#endif /* _GIC_V3_H */
+#endif /* __GIC_H__ */

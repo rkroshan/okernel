@@ -10,7 +10,7 @@
 #include "exception.h"
 #include "aarch64.h"
 #include "board.h"
-#include "gic_v3.h"
+#include "gic.h"
 #include "psw.h"
 #include "uart.h"
 
@@ -99,7 +99,7 @@ void irq_handle() {
   irq_no irq;
 
   psw_disable_and_save_interrupt(&psw);
-  irq = gic_v3_find_pending_irq();
+  irq = gic_find_pending_irq();
   if (irq == (uint32_t)IRQ_INVALID) {
     printk("INVALID IRQ!\n");
     goto restore_irq_out;

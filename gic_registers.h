@@ -20,8 +20,8 @@
 //
 // ------------------------------------------------------------
 
-#ifndef __gicv3_regs_h
-#define __gicv3_regs_h
+#ifndef __gic_regs_h
+#define __gic_regs_h
 
 #include "atomic.h"
 #include <stdint.h>
@@ -285,5 +285,5 @@ struct GICv3_its_sgi_if {
 #endif
 
 // ----------------------------------------------------------
-// End of gicv3_regs.h
+// End of gic_regs.h
 // ----------------------------------------------------------

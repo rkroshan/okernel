@@ -1,7 +1,7 @@
 #include "timer.h"
 #include "aarch64.h"
 #include "board.h"
-#include "gic_v3.h"
+#include "gic.h"
 #include "uart.h"
 #include <stdint.h>
 
@@ -58,7 +58,7 @@ void timer_test(void) {
 
   uart_puts("timer_test\n");
   // GIC Init
-  gic_v3_initialize();
+  init_interrupt_controller();
 
   uart_puts("CurrentEL = ");
   val = raw_read_current_el();

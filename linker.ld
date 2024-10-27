@@ -1,4 +1,4 @@
-#include "qemu_config.h"
+#include "board.h"
 
 EXTERN(_start)
 ENTRY(_start_phy)

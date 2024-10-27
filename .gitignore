@@ -4,3 +4,4 @@
 /docs/**
 !/docs/.gitkeep
 .format-stamp
+board.h

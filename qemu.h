@@ -1,5 +1,5 @@
-#ifndef __QEMU_CONFIG_H__
-#define __QEMU_CONFIG_H__
+#ifndef __QEMU_H__
+#define __QEMU_H__
 
 /*RAM RANGE*/
 #define RAM_START 0x40000000

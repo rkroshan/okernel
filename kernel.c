@@ -2,7 +2,7 @@
 #include "assert.h"
 #include "atomic.h"
 #include "board.h"
-#include "gic_v3.h"
+#include "gic.h"
 #include "timer.h"
 #include "uart.h"
 #include <stdint.h>

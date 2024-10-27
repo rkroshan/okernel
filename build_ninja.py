@@ -2,12 +2,16 @@ from ninja_syntax import Writer
 import os
 import re
 import sys
+import argparse
+
+supported_targets = ['qemu']
 
 ninja_rule_file = "rules.ninja"
 ninja_build_file = "build.ninja"
 
 WORKSPACE_DIR = os.getcwd()
 BUILD_DIR = WORKSPACE_DIR+"/build"
+TARGET_DIR = WORKSPACE_DIR
 ELF_NAME = 'kernel.elf'
 CROSS_COMPILER = 'clang'
 CC = CROSS_COMPILER
@@ -158,12 +162,74 @@ def find_files_with_extns(directory, extn):
         c_files.append(os.path.join(root, file))
   return c_files
 
+def generate_board_h(target_header):
+  board_h = "board.h"
+  towrite = \
+  """
+  #ifndef _BOARD_H
+  #define _BOARD_H
+
+  #include "{0}"
+
+  #endif /* _BOARD_H */
+  """.format(target_header)
+  with open(board_h,'w') as file:
+    file.write(towrite)
+
+def add_preprocessor_macro(macro, value):
+  global CFLAGS
+  CFLAGS = CFLAGS + ' -D' + macro + "=" + value
+  print(CFLAGS)
+
+def parse_target_configs(target_conf):
+  target_config_content = []
+  with open(target_conf,'r') as file:
+    for line in file:
+      if line.strip():
+        target_config_content.append(line)
+  
+  for line in target_config_content:
+    if re.match(r'^\s*#', line): # find out comment lines
+      continue # ignore them
+    if re.match(r'^\s*config', line): # "config" feature support
+      config = line.split()
+      add_preprocessor_macro(config[1],config[2])      
+
+def get_target_info():
+  parser = argparse.ArgumentParser(description="generate rule and build command commands for ninja")
+  # Add required --target argument
+  parser.add_argument('--target', required=True, type=str, help="Specify the target, supported targets : " + str(supported_targets))
+  args = parser.parse_args()
+
+  # target requested
+  print("Target:", args.target)
+
+  if args.target not in supported_targets:
+    print("unsupported target")
+    print("list of supported targets: ", supported_targets)
+    exit(1)
+  else:
+    target_header = os.path.join(TARGET_DIR,args.target+'.h')
+    target_conf = os.path.join(TARGET_DIR,args.target+'.conf')
+    if not os.path.exists(target_header):
+      print("[Required] Cannot find target header file: ",target_header)
+      exit(0)
+    if not os.path.exists(target_conf):
+      print("[Required] Cannot find target header file: ",target_conf)
+      exit(0)
+    
+    # parse_configs
+    parse_target_configs(target_conf)
+    # generate board.h
+    generate_board_h(target_header)
+
+
 #generate build instructions for source files
 c_source_files = find_files_with_extns(WORKSPACE_DIR, extn=".c")
 c_source_files.extend(find_files_with_extns(WORKSPACE_DIR, extn=".S"))
 
+get_target_info()
 generate_ninja_rules()
 generate_ninja_build(c_source_files, extn=["c","s","S"], build_dir=BUILD_DIR)
 
-# print(c_source_files)
 print("Generated ninja.build file!")
