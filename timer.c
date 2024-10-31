@@ -138,6 +138,28 @@ void platform_timer_set_timeout_in_sec(uint64_t timeout) {
 }
 
 /**
+ * @brief platform timer isr handler
+ *
+ */
+static void platform_timer_handler(irq_t irq, void *data) {
+  (void)data;
+  printk("platform_timer_handler: irq: %x\n", irq);
+
+  // Disable the timer
+  platform_timer_enable(false);
+  gic_clear_pending(TIMER_IRQ);
+  printk("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
+
+  // set the timer irq
+  platform_timer_set_timeout_in_sec(PLATFORM_TIMER_INTERRUPT_INTERVAL);
+
+  // Enable the timer
+  platform_timer_mask_interrupt(false);
+  platform_timer_enable(true);
+  printk("Enable the timer, CNTV_CTL_EL0 = %x\n", raw_read_cntv_ctl_reg());
+}
+
+/**
  * @brief intialise platform timer
  *
  */
@@ -165,6 +187,8 @@ void platform_timer_init(void) {
   // set the timer irq inetrrupt interval
   platform_timer_set_timeout_in_sec(PLATFORM_TIMER_INTERRUPT_INTERVAL);
 
+  /*register the platform timer isr*/
+  register_interrupt_isr(TIMER_IRQ, &platform_timer_handler, NULL);
   // Enable the timer and unmask the interruot
   platform_timer_mask_interrupt(false);
   platform_timer_enable(true);
@@ -173,25 +197,4 @@ void platform_timer_init(void) {
   // Enable IRQ
   enable_irq();
   printk("Enable IRQ, DAIF = %x\n", raw_read_daif());
-}
-
-/**
- * @brief platform timer isr handler
- *
- */
-void platform_timer_handler(void) {
-  printk("platform_timer_handler: \n");
-
-  // Disable the timer
-  platform_timer_enable(false);
-  gic_clear_pending(TIMER_IRQ);
-  printk("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
-
-  // set the timer irq
-  platform_timer_set_timeout_in_sec(PLATFORM_TIMER_INTERRUPT_INTERVAL);
-
-  // Enable the timer
-  platform_timer_mask_interrupt(false);
-  platform_timer_enable(true);
-  printk("Enable the timer, CNTV_CTL_EL0 = %x\n", raw_read_cntv_ctl_reg());
 }

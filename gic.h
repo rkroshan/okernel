@@ -18,10 +18,16 @@
 #ifndef __GIC_H__
 #define __GIC_H__
 
+#include "errno.h"
 #include "exception.h"
 #include "util.h"
 
-typedef uint32_t irq_no; /* IRQ no */
+typedef uint32_t irq_t; /* IRQ no */
+typedef void (*isr_t)(irq_t, void *);
+typedef struct isr_struct {
+  isr_t isr;
+  void *data;
+} isr_struct_t;
 
 #define GIC_GICD_BASE (GIC_BASE)           /* GICD MMIO base address */
 #define GIC_GICC_BASE (GIC_BASE + 0x10000) /* GICC MMIO base address */
@@ -219,9 +225,12 @@ this register determines only Group 0 interrupt preemption. */
 #define GIC_ICFGR_GET_N(x) ((x) >> 4)
 
 void init_interrupt_controller(void);
-void gic_deactivate_interrupt(irq_no irq);
-irq_no gic_find_pending_irq(void);
-void gic_disable_irq(irq_no irq);
-void gic_enable_irq(irq_no irq);
-void gic_clear_pending(irq_no irq);
+void gic_deactivate_interrupt(irq_t irq);
+irq_t gic_find_pending_irq(void);
+void gic_disable_irq(irq_t irq);
+void gic_enable_irq(irq_t irq);
+void gic_clear_pending(irq_t irq);
+
+uint8_t register_interrupt_isr(irq_t irq, isr_t isr, void *data);
+uint8_t get_registered_isr(irq_t irq, isr_struct_t *isr);
 #endif /* __GIC_H__ */

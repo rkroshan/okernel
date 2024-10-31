@@ -94,9 +94,20 @@ void handle_exception(exception_frame *exc) {
   uart_puthex(exc->x30);
 }
 
+void trigger_isr(irq_t irq) {
+  isr_struct_t isr;
+  uint8_t ret = get_registered_isr(irq, &isr);
+  if (ret != ESUCCESS) {
+    printk("Failed to trigger isr irq: %x\n", irq);
+  } else {
+    // trigger the isr
+    isr.isr(irq, isr.data);
+  }
+}
+
 void irq_handle() {
   psw_t psw;
-  irq_no irq;
+  irq_t irq;
 
   psw_disable_and_save_interrupt(&psw);
   irq = gic_find_pending_irq();
@@ -108,7 +119,7 @@ void irq_handle() {
   }
   gic_disable_irq(irq);          /* Mask this irq */
   gic_deactivate_interrupt(irq); /* Send EOI for this irq line */
-  platform_timer_handler();
+  trigger_isr(irq);
   gic_enable_irq(irq); /* unmask this irq line */
 
 restore_irq_out:

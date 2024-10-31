@@ -18,6 +18,10 @@ static uint32_t gic_max_rd =
 static uint16_t max_spi_support = 0; /*it is the maximum number of interrupts
                                         supported if espi not supported*/
 static uint16_t max_espi_support = 0;
+
+/*TODO support for extended spi/ppi?*/
+static isr_struct_t isr_table[GIC_SPI_MAX];
+
 /**
  * @brief Sets the address of the Distributor
  * @param dist   = address of the Distributor
@@ -352,7 +356,7 @@ void init_gicd(void) {
 /** Disable IRQ
         @param[in] irq IRQ number
  */
-void gic_disable_irq(irq_no irq) {
+void gic_disable_irq(irq_t irq) {
   if ((irq >= GIC_SGI_BASE) && (irq < GIC_GICR_PPI_MAX)) {
     uint32_t gicr_indx = get_cpulocal_gicr_index();
     /*ICEnabler register when writes 1 in the irq index disable that irq, read
@@ -372,7 +376,7 @@ void gic_disable_irq(irq_no irq) {
 /** Enable IRQ
         @param[in] irq IRQ number
  */
-void gic_enable_irq(irq_no irq) {
+void gic_enable_irq(irq_t irq) {
   if ((irq >= GIC_SGI_BASE) && (irq < GIC_GICR_PPI_MAX)) {
     uint32_t gicr_indx = get_cpulocal_gicr_index();
     atomic_store_relaxed(&gic_rdist[gicr_indx].sgis.GICR_ISENABLER[0],
@@ -388,7 +392,7 @@ void gic_enable_irq(irq_no irq) {
 /** Clear a pending interrupt
         @param[in] irq IRQ number
  */
-void gic_clear_pending(irq_no irq) {
+void gic_clear_pending(irq_t irq) {
   if ((irq >= GIC_SGI_BASE) && (irq < GIC_GICR_PPI_MAX)) {
     uint32_t gicr_indx = get_cpulocal_gicr_index();
     atomic_store_relaxed(&gic_rdist[gicr_indx].sgis.GICR_ICPENDR[0], UBIT(irq));
@@ -419,7 +423,7 @@ static uint64_t gic_acknowledge_irq() {
  * @param irq   IRQ number
  * @param prio  Interrupt priority in Arm specific expression
  */
-void gic_set_priority(irq_no irq, uint8_t prio) {
+void gic_set_priority(irq_t irq, uint8_t prio) {
   if ((irq >= GIC_SGI_BASE) && (irq < GIC_GICR_PPI_MAX)) {
     uint32_t gicr_indx = get_cpulocal_gicr_index();
     atomic_store_relaxed(&gic_rdist[gicr_indx].sgis.GICR_IPRIORITYR[irq], prio);
@@ -438,7 +442,7 @@ void gic_set_priority(irq_no irq, uint8_t prio) {
  * @param irq     IRQ number
  * @param config  Configuration value for GICD_ICFGR
  */
-void gic_set_irq_cfg(irq_no irq, uint8_t config) {
+void gic_set_irq_cfg(irq_t irq, uint8_t config) {
   uint32_t curr_icfg;
   config = config & 0x3U;
   assert((config == GIC_ICFGR_LEVEL) || (config == GIC_ICFGR_EDGE));
@@ -484,13 +488,13 @@ void gic_set_irq_cfg(irq_no irq, uint8_t config) {
         @param[in] ctrlr   IRQ controller information
         @param[in] irq     IRQ number
  */
-static void gic_eoir1_el1(irq_no irq) {
+static void gic_eoir1_el1(irq_t irq) {
   uint64_t eoir1_el1 = (uint64_t)irq;
   data_barrier();
   ASM_MSR_ICC_EOIR1_EL1(eoir1_el1);
 }
 
-static void _gic_deactivate_interrupt(irq_no irq) {
+static void _gic_deactivate_interrupt(irq_t irq) {
   uint64_t dir_el1 = (uint64_t)irq;
   data_barrier();
   ASM_MSR_ICC_DIR_EL1(dir_el1);
@@ -501,7 +505,7 @@ static void _gic_deactivate_interrupt(irq_no irq) {
  *
  * @param irq
  */
-void gic_deactivate_interrupt(irq_no irq) {
+void gic_deactivate_interrupt(irq_t irq) {
   assert(irq >= GIC_SGI_BASE);
   assert(irq < GIC_SPI_MAX);
   // TODO: what if extended SPI or PPI?
@@ -542,9 +546,9 @@ void gic_v3_initialize(void) {
 /**
  * @brief Find pending IRQ
  *
- * @return irq_no
+ * @return irq_t
  */
-irq_no gic_find_pending_irq() { return (uint32_t)gic_acknowledge_irq(); }
+irq_t gic_find_pending_irq() { return (uint32_t)gic_acknowledge_irq(); }
 
 /**
  * @brief intialise interrupt controller
@@ -556,4 +560,64 @@ void init_interrupt_controller(void) {
 #else
 #error "gic_v3 interrupt controller is implemented as of now"
 #endif
+}
+
+/**
+ * @brief register for interrupt isr handler
+ *
+ * @param irq
+ * @param isr
+ * @param data
+ * @return uint8_t
+ */
+uint8_t register_interrupt_isr(irq_t irq, isr_t isr, void *data) {
+  uint8_t ret;
+
+  if (irq >= GIC_SPI_MAX) {
+    ret = EINVALID;
+    printk("Failed to register isr due to invalid irq : %x\n", irq);
+    goto out;
+  }
+
+  if (isr_table[irq].isr != NULL) {
+    ret = EINVALID;
+    printk("Failed to register isr, isr already register for irq: %x\n", irq);
+    goto out;
+  }
+
+  isr_table[irq].isr = isr;
+  isr_table[irq].data = data;
+  ret = ESUCCESS;
+
+out:
+  return ret;
+}
+
+/**
+ * @brief Get the registered isr
+ *
+ * @param irq
+ * @param isr
+ * @return uint8_t ret value
+ */
+uint8_t get_registered_isr(irq_t irq, isr_struct_t *isr) {
+  uint8_t ret;
+  if (irq >= GIC_SPI_MAX) {
+    ret = EINVALID;
+    isr->isr = NULL;
+    printk("get_registered_isr: Failed: irq invalid: %x\n", irq);
+    goto out;
+  }
+
+  if (isr_table[irq].isr == NULL) {
+    ret = EINVALID;
+    printk("get_registered_isr: Failed: no isr registered: %x\n", irq);
+    goto out;
+  }
+
+  *isr = isr_table[irq];
+  ret = ESUCCESS;
+
+out:
+  return ret;
 }
