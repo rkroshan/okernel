@@ -100,10 +100,10 @@ def generate_ninja_rules():
         description="formatting files using .clang-format",
     )
     writer.newline()
-    # format python files using black
+    # format python files using autopep8
     writer.rule(
         name="format_python_files",
-        command=f"black $in && touch {FORMAT_PY_FILE}",
+        command=f"autopep8 --in-place $in && touch {FORMAT_PY_FILE}",
         description="formatting python files using black",
     )
     # close the rules file
@@ -137,7 +137,8 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
     writer.newline()
 
     # format the python files
-    writer.build(FORMAT_PY_FILE, rule="format_python_files", inputs=python_files_list)
+    writer.build(FORMAT_PY_FILE, rule="format_python_files",
+                 inputs=python_files_list)
     writer.newline()
 
     # Build targets for each source file
@@ -145,7 +146,8 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
     object_files = []
     for source_file in source_files:
         object_file = (
-            build_dir + "/" + re.sub(extn_pattern, ".o", os.path.basename(source_file))
+            build_dir + "/" + re.sub(extn_pattern, ".o",
+                                     os.path.basename(source_file))
         )
         object_files.append(object_file)
         writer.build(
@@ -258,7 +260,8 @@ def get_target_info():
         "--target",
         required=True,
         type=str,
-        help="Specify the target, supported targets : " + str(supported_targets),
+        help="Specify the target, supported targets : " +
+        str(supported_targets),
     )
     args = parser.parse_args()
 

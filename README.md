@@ -5,7 +5,7 @@
 
 	```
 	```
-	python3 -m pip install ninja_syntax black
+	python3 -m pip install ninja_syntax autopep8
 	```
 *	Build
 	```
