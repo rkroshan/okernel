@@ -116,10 +116,23 @@ uint64_t raw_read_cntv_cval_el0(void) {
  *
  * @param uint64_t counter value at which next tick occurs
  */
-static void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0) {
+void raw_write_cntv_cval_el0(uint64_t cntv_cval_el0) {
   __asm__ __volatile__("msr CNTV_CVAL_EL0, %0\n\t"
                        :
                        : "r"(cntv_cval_el0)
+                       : "memory");
+}
+
+/**
+ * @brief CNTV_TVAL_EL0, Counter-timer Virtual Timer value register
+ *      Holds the timer value for the virtual timer.
+ *
+ * @param uint64_t counter value at which next tick occurs
+ */
+static void raw_write_cntv_tval_el0(uint64_t cntv_tval_el0) {
+  __asm__ __volatile__("msr CNTV_TVAL_EL0, %0\n\t"
+                       :
+                       : "r"(cntv_tval_el0)
                        : "memory");
 }
 
@@ -134,7 +147,10 @@ void platform_timer_set_timeout_in_sec(uint64_t timeout) {
            max_timeout);
   }
   /*convert the timeout seconds into ticks and it to current time*/
-  raw_write_cntv_cval_el0(get_current_ticks() + (timeout * cntfrq));
+  // raw_write_cntv_cval_el0(get_current_ticks() + (timeout * cntfrq));
+  /*or can set the tval register which makes cval in hardware as = current_ticks
+   * + tval*/
+  raw_write_cntv_tval_el0(timeout * cntfrq);
 }
 
 /**
@@ -160,6 +176,17 @@ static void platform_timer_handler(irq_t irq, void *data) {
 }
 
 /**
+ * @brief Set the up platform timer irq
+ *
+ */
+static void setup_platform_timer_irq() {
+  gic_set_irq_cfg(TIMER_IRQ, GIC_ICFGR_EDGE);
+  gic_set_priority(TIMER_IRQ, 0x20U); /* Set priority */
+  gic_clear_pending(TIMER_IRQ);
+  gic_enable_irq(TIMER_IRQ);
+}
+
+/**
  * @brief intialise platform timer
  *
  */
@@ -177,6 +204,8 @@ void platform_timer_init(void) {
   or if CNTV Offset is 0 even if EL2 is there
   */
   platform_timer_enable(false);
+
+  setup_platform_timer_irq();
 
   /*need to calculate max no of seconds we can timeout for
   else system can't hold timer longer than that since uint64 will get overflowed

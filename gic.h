@@ -230,6 +230,8 @@ irq_t gic_find_pending_irq(void);
 void gic_disable_irq(irq_t irq);
 void gic_enable_irq(irq_t irq);
 void gic_clear_pending(irq_t irq);
+void gic_set_priority(irq_t irq, uint8_t prio);
+void gic_set_irq_cfg(irq_t irq, uint8_t config);
 
 uint8_t register_interrupt_isr(irq_t irq, isr_t isr, void *data);
 uint8_t get_registered_isr(irq_t irq, isr_struct_t *isr);

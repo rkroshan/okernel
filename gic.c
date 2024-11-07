@@ -537,10 +537,6 @@ void gic_v3_initialize(void) {
   init_gicd();
   init_gicr();
   init_gicc();
-  gic_set_irq_cfg(TIMER_IRQ, GIC_ICFGR_EDGE);
-  gic_set_priority(TIMER_IRQ, 0x20U); /* Set priority */
-  gic_clear_pending(TIMER_IRQ);
-  gic_enable_irq(TIMER_IRQ);
 }
 
 /**
