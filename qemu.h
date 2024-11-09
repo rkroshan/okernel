@@ -3,7 +3,7 @@
 
 /*RAM RANGE*/
 #define RAM_START 0x40000000
-#define RAM_SIZE 0x100000000
+#define RAM_SIZE 0x100000000    /*4GB*/
 #define RAM_END (RAM_START + RAM_SIZE)
 
 /*Kernel start*/
@@ -11,6 +11,11 @@
 
 /*Stack Size*/
 #define STACK_SIZE 0x1000
+/*PAGE Size in Bytes*/
+#define PAGE_SIZE   0x1000  /*4096, should be power of 2 !!!!!*/
+
+/* MAX CPU CORES*/
+#define MAX_CPUS    4
 
 /*For Qemu Virt Aarch64 Arm SOC*/
 #define VIRT_UART_ADDR 0x09000000
