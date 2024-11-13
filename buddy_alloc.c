@@ -12,56 +12,6 @@
 #define BIT_POSITION(block) ((block) % BITS_PER_UINT64)
 
 /**
- * @brief structure to store memory regions information
- *
- */
-typedef struct memoryregion {
-  uint8_t *base_addr;
-  size_t size;
-  FreeArea_t area[MAX_ORDER];
-} MemoryRegion_t;
-
-/*max number of memory regions*/
-static MemoryRegion_t memory_regions[MAX_MEMORY_REGIONS_BUDDY];
-uint8_t num_regions = 0;
-
-/**
- * @brief Get the bitmap wastage of that order, since max order is fixed per
- * allocator num_pairs = (1<<(max_order-1))/2 bitmap_size = (np +
- * BITS_PER_UINT64 -1U) / BITS_PER_UINT64) * sizeof(uint64_t));
- * @param order
- * @return uint64_t
- */
-static uint64_t get_bitmap_wastage_n_order(uint8_t order) {
-  return (((((BIT(MAX_ORDER - 1) / (BIT(order))) / 2) + BITS_PER_UINT64 - 1U) /
-           BITS_PER_UINT64) *
-          sizeof(uint64_t));
-}
-
-/**
- * @brief return how much bitmap memory wastage will happen for current order of
- * buddy_allocator MAX_ORDER is already fixed this will be helpful for while
- * giving memory to heap such that wastage memory doesn't affect MAX_ORDER
- * memory
- */
-static uint64_t get_bitmap_wastage_buddy_allocator() {
-  uint64_t total_wastage = 0;
-  for (uint8_t order = 0; order < MAX_ORDER; order++) {
-    total_wastage += get_bitmap_wastage_n_order(order);
-  }
-  return total_wastage;
-}
-
-/**
- * @brief get max_memory managable by buddy_allocator
- * + wastage memory needed by bitmap
- */
-uint64_t get_max_mem_buddy_alloc_in_bytes() {
-  return ((BIT(MAX_ORDER - 1) * PAGE_SIZE) +
-          get_bitmap_wastage_buddy_allocator());
-}
-
-/**
  * @brief when the block is taken from a freearea 
  * or given back
  * mark the bitmap by toggling the block pair bit
@@ -157,7 +107,7 @@ void buddy_heap_init() {
  * - and remove it from freeblock list
  * @return struct page_t for the allocation
  */
-static page_t *buddy_alloc(uint8_t order) {
+static page_t* buddy_alloc(uint8_t order) {
   /*sanity check: if order is greater than MAX_ORDER-1*/
   if (order >= MAX_ORDER) {
     printk("buddy_alloc: order : %u greater than MAX_ORDER-1: %u", order,
@@ -204,6 +154,8 @@ static page_t *buddy_alloc(uint8_t order) {
         page->order = order;
         page->start_addr = (uint64_t)block;
         page->zone_id = zone_idx;
+        page->page_owner = OWNER_BUDDY;
+        page->owner_kmem_cache_addr = NULL;
         return page;
       }
     }
@@ -286,20 +238,24 @@ static void buddy_free(page_t* page, uint8_t order) {
       }
       current_order++;
     }
+
+    //update page info that it is now not own by buddy
+    //this will help prevent free pages not owned by buddy but earlier were owned
+    page->page_owner = OWNER_COUNT;
 }
 
 /**
  * @brief get a free page
  * @return page struct pointer
  */
-page_t *get_free_page(void) { return buddy_alloc(0); }
+page_t* get_free_page(void) { return buddy_alloc(0); }
 
 /**
  * @brief get free pages, count  = 2^(order)
  * make sure order is less than (max order -1)
  * @return page struct pointer
  */
-page_t *get_free_pages(uint8_t order) { return buddy_alloc(order); }
+page_t* get_free_pages(uint8_t order) { return buddy_alloc(order); }
 
 /**
  * @brief free the page based on order

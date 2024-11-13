@@ -22,20 +22,14 @@ void buddy_heap_init(void);
  * @brief get a free page
  * @return page struct pointer
  */
-page_t *get_free_page(void);
+page_t* get_free_page(void);
 
 /**
  * @brief get free pages, count  = 2^(order)
  * make sure order is less than (max order -1)
  * @return page struct pointer
  */
-page_t *get_free_pages(uint8_t order);
-
-/**
- * @brief get max_memory managable by buddy_allocator
- * + wastage memory needed by bitmap
- */
-uint64_t get_max_mem_buddy_alloc_in_bytes();
+page_t* get_free_pages(uint8_t order);
 
 /**
  * @brief free the page based on order

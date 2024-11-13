@@ -2,16 +2,14 @@
 #include "board.h"
 #include "util.h"
 #include "assert.h"
-
+#include "buddy_alloc.h"
+#include "slab.h"
 /**
  * @brief this will the start of heap addr before 
  * which we have text, data and static stack allocation
  * defined in linker
  */
 extern uint64_t heap_start;
-
-/*buddy_alloc function from buddy_allocator*/
-extern void buddy_heap_init(void);
 
 /**
  * @brief this will define the zone heap start after we allocate the memory we needed for
@@ -93,11 +91,12 @@ uint64_t get_total_memory_in_bytes(void)
  * @brief return page index from the address
  * make sure that addr is page aligned
  * every page in whole memory of the system has an index
+ * 
+ * it is actually pfn also
  */
 uint64_t get_page_indx(uint64_t addr)
 {
-    assert(_is_align(addr,get_page_size()));
-    return (addr / get_page_size());
+    return (addr >> get_page_size());
 }
 
 /**
@@ -165,6 +164,61 @@ zone_t* get_zone_info(uint8_t index)
 }
 
 /**
+ * @brief function to alloc memory
+ * kmalloc: based on size it will decide from where to take the memory
+ * if size > PAGE_SIZE buddy_alloc will be use
+ * else kmem_cache_alloc will be use
+ * Metadata : will be calulated first by getting the pfn for the address then 
+ * get the struct page and then check for who owns that page based on which
+ * it will be dealloc by buddy or slab
+ */
+void* kmalloc(size_t size)
+{
+    /*why to waste time*/
+    if(size == 0U){
+        return NULL;
+    }
+
+    if(size >= get_page_size()){
+        //going to use buddy allocator
+        /*need to align the size to nearest page*/
+        size_t aligned_size = _alignto(size,get_page_size());
+        uint8_t order = __builtin_ctz(aligned_size) - __builtin_ctz(get_page_size()); /*trailing zeros == powerof2*/
+        page_t* page = get_free_pages(order);
+        return (void*)page->start_addr;
+    }
+    else{
+        //need to go with slab allocator
+        /*need to align to 4bytes*/
+        size_t aligned_size = _alignto(size,sizeof(uint32_t));
+        return kmem_cache_alloc(size);
+    }
+}
+
+/**
+ * @brief function to free memory
+ * Kfree: first we will try to get the pfn for that addr 
+ * the get to know who owns that page
+ * then call appropritae slab or buddy free
+ */
+void kfree(void* ptr)
+{
+    page_t* page = get_page_struct(get_page_indx((uint64_t)ptr));
+    if(page->page_owner == OWNER_BUDDY){
+        //page is owned by buddy allocator
+        get_free_pages(page->order);
+    }
+    else if(page->page_owner = OWNER_SLAB){
+        assert(page->owner_kmem_cache_addr != NULL); /*only slab_alloc should set this then how come?*/
+        //page is owned by slab allocator and by which cache
+        kmem_cache_free(ptr,page);
+    }
+    else{
+        //ignore
+    }
+}
+
+/**
  * @brief boot mem intialisation
  * necessary to allocate memory for structures use to manage memory
  * 
@@ -183,4 +237,7 @@ void boot_mem_init(void)
 
     //at last initialise the buddy_allocator
     buddy_heap_init();
+
+    //kmem cache init
+    kmem_cache_boot_init();
 }

@@ -22,6 +22,19 @@ typedef enum{
 }zone_enum_t;
 
 /**
+ * @brief enum for page owner information
+ * when a page will be allocated we need to know who allocates it
+ * buddy or slab
+ * and if slab then what is the address for the kmem_cache
+ * this will help in Kfree very quickly
+ */
+typedef enum{
+  OWNER_BUDDY=0,
+  OWNER_SLAB,
+  OWNER_COUNT
+}page_owner_enum_t;
+
+/**
  * @brief structure to store per order information
  *
  */
@@ -57,10 +70,29 @@ typedef struct zone{
 typedef struct page{
     uint8_t order; /*this is necessary because during buddy deallocation we need order information to find the buddy*/
     uint8_t zone_id; /*helpful while deallocating buddies else need to loop in each zone to find where this address will land*/
-    uint8_t padding[6]; /*will remove it later if need for something else*/
+    uint8_t page_owner; /*should be an page_owner_enum_t*/
+    uint8_t padding[5]; /*will remove it later if need for something else*/
+    void* owner_kmem_cache_addr; /*store the kmem_cache struct address to quickly find the cache which owns it*/
     uint64_t start_addr; /*page start address*/
 }page_t;
 
+/**
+ * @brief function to alloc memory
+ * kmalloc: based on size it will decide from where to take the memory
+ * if size > PAGE_SIZE buddy_alloc will be use
+ * else kmem_cache_alloc will be use
+ * Metadata : will be calulated first by getting the pfn for the address then 
+ * get the struct page and then check for who owns that page based on which
+ * it will be dealloc by buddy or slab
+ */
+void* kmalloc(size_t size);
+/**
+ * @brief function to free memory
+ * Kfree: first we will try to get the pfn for that addr 
+ * the get to know who owns that page
+ * then call appropritae slab or buddy free
+ */
+void kfree(void* ptr);
 
 /**
  * @brief return page index from the address
