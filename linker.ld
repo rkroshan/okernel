@@ -64,5 +64,5 @@ SECTIONS
 	. = ALIGN(64); /* align to page size */
 
 	. = . + STACK_SIZE ; /* stack memory */
-	stack_top = . + _start_phy;
+	stack_top = .;
 }
