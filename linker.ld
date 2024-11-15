@@ -63,6 +63,16 @@ SECTIONS
 	}
 	. = ALIGN(64); /* align to page size */
 
-	. = . + STACK_SIZE ; /* stack memory */
+	.tbss : { /*thread local storage variables*/
+		*(.tbss.current_thread)
+		*(SORT_BY_ALIGNMENT(.tbss .tbss.*))
+	} : tls
+	tbss_size = SIZEOF(.tbss);
+	tbss_align = ALIGNOF(.tbss);
+
+	. = ALIGN(PAGE_SIZE);
+	. = . + MAX_CPUS*STACK_SIZE ; /* stack memory */
 	stack_top = .;
+	
+	heap_start = .; /*heap start*/
 }

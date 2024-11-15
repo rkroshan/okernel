@@ -1,6 +1,5 @@
-#include "uart.h"
 #include "board.h"
-
+#include <stdint.h>
 volatile unsigned int *const UART0DR = (unsigned int *)VIRT_UART_ADDR;
 volatile unsigned int *const UART0FR = (unsigned int *)VIRT_UART_ADDR + 0x18;
 

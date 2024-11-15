@@ -13,6 +13,8 @@
 /* CurrentEL, Current Exception Level */
 #define CURRENT_EL_MASK 0x3
 #define CURRENT_EL_SHIFT 2
+/*MPIDR MASR*/
+#define MPIDR_AFF0_MASK 0xffU
 
 /* DAIF, Interrupt Mask Bits */
 #define DAIF_DBG_BIT (1 << 3) /* Debug mask bit */
@@ -62,5 +64,9 @@ void enable_fp_simd_access();
 uint64_t get_mpidr();
 /*get far el1 reg value*/
 uint64_t get_FAR_EL1();
+/**
+ * @brief set TPIDR_EL1 Value
+ */
+void set_tpidr_el1(uint64_t tpidr_el1);
 
 #endif /*  _AARCH64_H   */

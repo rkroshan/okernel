@@ -56,6 +56,11 @@
     __asm__ volatile("dsb sy" ::: "memory");                                   \
   } while (0)
 
+#define sev()                                                                  \
+  do {                                                                         \
+    __asm__ volatile("sev" ::: "memory");                                      \
+  } while (0)
+
 #define BARRIER()                                                              \
   do {                                                                         \
     __asm__ volatile("isb" ::: "memory");                                      \

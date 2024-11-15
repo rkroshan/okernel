@@ -56,6 +56,13 @@ uint64_t get_mpidr() {
 }
 
 /**
+ * @brief set TPIDR_EL1 Value
+ */
+void set_tpidr_el1(uint64_t tpidr_el1) {
+  __asm__ __volatile__("msr SPSR_EL1, %0\n\t" : : "r"(tpidr_el1) : "memory");
+}
+
+/**
  * @brief Get the FAR EL1
  *
  * @return uint64_t

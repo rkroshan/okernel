@@ -3,7 +3,6 @@
 #include "assert.h"
 #include "board.h"
 #include "gic.h"
-#include "uart.h"
 
 #define TIME_IN_NSEC (1000000000)
 #define TIMESPEC_MAX_NSEC (TIME_IN_NSEC - 1)
@@ -111,6 +110,15 @@ uint64_t raw_read_cntv_cval_el0(void) {
 }
 
 /**
+ * @brief get system time stamp
+ *
+ * @return timestamp in ns
+ */
+uint64_t get_system_timestamp_ns(void) {
+  return (((get_current_ticks() * (1000000000ULL)) / cntfrq));
+}
+
+/**
  * @brief CNTV_CVAL_EL0, Counter-timer Virtual Timer CompareValue register
  *      Holds the compare value for the virtual timer.
  *
@@ -143,8 +151,8 @@ static void raw_write_cntv_tval_el0(uint64_t cntv_tval_el0) {
  */
 void platform_timer_set_timeout_in_sec(uint64_t timeout) {
   if (timeout > max_timeout) {
-    printk("FAILED TO SETUP TIMEOUT %u > maxtimeout (%u)\n", timeout,
-           max_timeout);
+    printk_error("FAILED TO SETUP TIMEOUT %u > maxtimeout (%u)\n", timeout,
+                 max_timeout);
   }
   /*convert the timeout seconds into ticks and it to current time*/
   // raw_write_cntv_cval_el0(get_current_ticks() + (timeout * cntfrq));
@@ -159,12 +167,12 @@ void platform_timer_set_timeout_in_sec(uint64_t timeout) {
  */
 static void platform_timer_handler(irq_t irq, void *data) {
   (void)data;
-  printk("platform_timer_handler: irq: %x\n", irq);
+  printk_info("platform_timer_handler: irq: %x\n", irq);
 
   // Disable the timer
   platform_timer_enable(false);
   gic_clear_pending(TIMER_IRQ);
-  printk("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
+  printk_info("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
 
   // set the timer irq
   platform_timer_set_timeout_in_sec(PLATFORM_TIMER_INTERRUPT_INTERVAL);
@@ -172,7 +180,7 @@ static void platform_timer_handler(irq_t irq, void *data) {
   // Enable the timer
   platform_timer_mask_interrupt(false);
   platform_timer_enable(true);
-  printk("Enable the timer, CNTV_CTL_EL0 = %x\n", raw_read_cntv_ctl_reg());
+  printk_info("Enable the timer, CNTV_CTL_EL0 = %x\n", raw_read_cntv_ctl_reg());
 }
 
 /**
@@ -191,13 +199,13 @@ static void setup_platform_timer_irq() {
  *
  */
 void platform_timer_init(void) {
-  printk("platform_timer_init\n");
+  printk_debug("platform_timer_init\n");
   /*read the system counter frequency*/
   cntfrq = raw_read_cntfrq_el0();
-  printk("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
+  printk_debug("System Frequency: CNTFRQ_EL0 = %u\n", cntfrq);
   assert(cntfrq < UINT64_MAX);
 
-  printk("CNTV_CTL_EL0: %x\n", raw_read_cntv_ctl_reg());
+  printk_debug("CNTV_CTL_EL0: %x\n", raw_read_cntv_ctl_reg());
   /*Disable the EL1 virtual timer
   virtual timer is good to use at el1, since
   it is equal to EL1 physical timer, when EL2 is not there
@@ -221,9 +229,10 @@ void platform_timer_init(void) {
   // Enable the timer and unmask the interruot
   platform_timer_mask_interrupt(false);
   platform_timer_enable(true);
-  printk("Enable the timer, CNTV_CTL_EL0 = %x\n", raw_read_cntv_ctl_reg());
+  printk_debug("Enable the timer, CNTV_CTL_EL0 = %x\n",
+               raw_read_cntv_ctl_reg());
 
   // Enable IRQ
   enable_irq();
-  printk("Enable IRQ, DAIF = %x\n", raw_read_daif());
+  printk_debug("Enable IRQ, DAIF = %x\n", raw_read_daif());
 }

@@ -13,6 +13,12 @@ uint64_t raw_read_cntv_cval_el0(void);
 uint64_t raw_read_cntfrq_el0(void);
 void platform_timer_mask_interrupt(bool state);
 uint64_t raw_read_cntv_ctl_reg(void);
+/**
+ * @brief get system time stamp
+ *
+ * @return timestamp in ns
+ */
+uint64_t get_system_timestamp_ns(void);
 
 void platform_timer_enable(bool state);
 

@@ -1,11 +1,24 @@
+#include "kernel.h"
 #include "aarch64.h"
 #include "assert.h"
 #include "atomic.h"
 #include "board.h"
 #include "gic.h"
+#include "idle.h"
+#include "mm.h"
+#include "psci.h"
 #include "timer.h"
-#include "uart.h"
 #include <stdint.h>
+
+extern void _start(void);
+
+/**
+ * @brief kernel structure for smp cpu information
+ *
+ */
+
+kernel_t kernel;
+log_level_e current_log_level;
 
 /* Exception SVC Test */
 void exception_svc(void) {
@@ -30,14 +43,14 @@ void assert_test(void) { assert(123 == 9); }
  * @return 0 on success, negative on failure.
  */
 void exception_svc_test(void) {
-  uart_puts("exception_svc_test... start\n");
+  printk_debug("exception_svc_test... start\n");
   /* SVC instruction causes a Supervisor Call exception. */
   /* vector_table:_curr_el_spx_sync should be called */
   exception_svc();
 
   // Wait for Interrupt.
   // wfi();
-  uart_puts("exception_svc_test... done\n");
+  printk_debug("exception_svc_test... done\n");
 }
 
 /**
@@ -47,16 +60,11 @@ void exception_svc_test(void) {
  * @param None
  * @return
  */
-void atomic_relaxed_test(void) {
+void atomic_test(void) {
   _Atomic int atomic_var = 0;
-
-  // atomic_fetch_add(&atomic_var, 1);
-  atomic_store_relaxed(&atomic_var, 1);
-  atomic_load_relaxed(&atomic_var);
-
-  uart_puts("\nAtomic Value: ");
-  uart_puthex((uint64_t)atomic_var);
-  uart_puts("\n");
+  uint64_t old_val =
+      atomic_fetch_add_explicit(&atomic_var, 4, memory_order_relaxed);
+  printk_debug("Atomic_test old:%u new:%u\n", old_val, atomic_var);
 }
 
 /**
@@ -68,35 +76,109 @@ void atomic_relaxed_test(void) {
  */
 /*printk functionality test*/
 void print_test() {
-  printk("Hi just checking %d %x %s %u %d %b\n", 123, 4096, "0x123", -123, -123,
-         1024);
+  printk_debug("CurrentEL = %x\n", raw_read_current_el());
+  printk_debug("RVBAR_EL1 = %x\n", raw_read_rvbar_el1());
+  printk_debug("VBAR_EL1 = %x\n", raw_read_vbar_el1());
+  printk_debug("DAIF = %x\n", raw_read_daif());
+  printk_debug("Hi just checking %d %x %s %u %d %b\n", 123, 4096, "0x123", -123,
+               -123, 1024);
 }
 
 /**
- * @brief Main function to setup initalize the system after _start
+ * @brief primary core 0 cold boot init
+ * Main function to setup initalize the system after _start
  *
  * enable floating pointer simd access
  * test atomic functions working
  * test fomatiing prink function working
  * commented : test spx elx sync exception testing
- * @param None
- * @return 0 on success, negative on failure.
  */
-int main(void) {
+
+void primary_boot_cold_init() {
+  // enable floating pointer simd access
   enable_fp_simd_access();
 
-  printk("CurrentEL = %x\n", raw_read_current_el());
-  printk("RVBAR_EL1 = %x\n", raw_read_rvbar_el1());
-  printk("VBAR_EL1 = %x\n", raw_read_vbar_el1());
-  printk("DAIF = %x\n", raw_read_daif());
+  // set current log level
+  set_current_log_level(INFO);
 
-  atomic_relaxed_test();
-  // assert_test();
+  /*setup the heap management*/
+  boot_mem_init();
+
+  /*set the current cpu information*/
+  uint64_t affinity = get_mpidr();
+  uint64_t cpu_id = affinity & MPIDR_AFF0_MASK;
+  cpu_t *_current_cpu = &kernel.cpu[cpu_id];
+  _current_cpu->cpu_id = cpu_id;
+  _current_cpu->affinity = affinity;
+  /*setup the idle thread*/
+  idle_thread_init(_current_cpu->cpu_id);
+  _current_cpu->idle_thread = get_current_thread();
+  _current_cpu->current_thread = _current_cpu->idle_thread;
+
+  /*do peripheral initialisation*/
+  // test atomic functions working
+  atomic_test();
+  // test formating prink function working
   print_test();
-  // exception_svc_test();
+
   // GIC Init
-  init_interrupt_controller();
+  primary_init_interrupt_controller();
+
   // Platoform timer init
   platform_timer_init();
-  return 0;
+
+  /*put the secondary core out of reset*/
+  for (uint8_t id = 1; id < MAX_CPUS; id++) {
+    psci_cpu_on(id, (uint64_t)_start);
+  }
+  /*call idle thread*/
+  idle();
 }
+
+/**
+ * @brief secondary cold boot init
+ *
+ */
+void secondary_boot_cold_init() {
+  /*set the current cpu information*/
+  uint64_t affinity = get_mpidr();
+  uint64_t cpu_id = affinity & MPIDR_AFF0_MASK;
+  cpu_t *_current_cpu = &kernel.cpu[cpu_id];
+  _current_cpu->cpu_id = cpu_id;
+  _current_cpu->affinity = affinity;
+  /*setup the idle thread*/
+  idle_thread_init(_current_cpu->cpu_id);
+  _current_cpu->idle_thread = get_current_thread();
+  _current_cpu->current_thread = _current_cpu->idle_thread;
+
+  /*do peripheral initialisation*/
+  // enable floating pointer simd access
+  enable_fp_simd_access();
+  // test atomic functions working
+  atomic_test();
+  // test formating prink function working
+  print_test();
+
+  // GIC Init
+  secondary_init_interrupt_controller();
+
+  // Platoform timer init
+  platform_timer_init();
+
+  /*call idle thread*/
+  idle();
+}
+
+/**
+ * @brief set current log level
+ *
+ */
+void set_current_log_level(log_level_e loglevel) {
+  current_log_level = loglevel;
+}
+
+/**
+ * @brief set current log level
+ *
+ */
+log_level_e get_current_log_level(void) { return current_log_level; }

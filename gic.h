@@ -224,7 +224,8 @@ this register determines only Group 0 interrupt preemption. */
 #define GICD_ENABLE_GET_N(x) ((x) >> 5)
 #define GIC_ICFGR_GET_N(x) ((x) >> 4)
 
-void init_interrupt_controller(void);
+void primary_init_interrupt_controller(void);
+void secondary_init_interrupt_controller(void);
 void gic_deactivate_interrupt(irq_t irq);
 irq_t gic_find_pending_irq(void);
 void gic_disable_irq(irq_t irq);

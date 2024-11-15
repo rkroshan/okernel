@@ -19,7 +19,7 @@ LD = CROSS_COMPILER
 OBJDUMP = "llvm-objdump"
 LINKER = "linker.ld"
 PREPROCESSED_LINKER = BUILD_DIR + "/linker.ld.gen"
-CFLAGS = "--target=aarch64-linux-gnu -march=armv8.2-a -mcpu=cortex-a72 -Os -Wall -Wextra -g -ffreestanding -nostdlib -fpic"
+CFLAGS = "--target=aarch64-linux-gnu -mtp=el1 -march=armv8.5-a -O0 -ftls-model=local-exec -Wall -Wextra -Wpadded -g -ffreestanding -nostdlib -fpic"
 LDFLAGS = (
     "--target=aarch64-linux-gnu -nostdlib -fuse-ld=lld -pie -Wl,-z,max-page-size=4096 -Wl,-z,separate-loadable-segments -Wl,-Map="
     + os.path.join(BUILD_DIR, ELF_NAME)
@@ -111,7 +111,7 @@ def generate_ninja_rules():
 
 
 # generates build.ninja
-def generate_ninja_build(source_files, extn, build_dir="build"):
+def generate_ninja_build(source_files, build_dir="build"):
     """
     Generates a ninja.build file for compiling source files.
 
@@ -142,13 +142,10 @@ def generate_ninja_build(source_files, extn, build_dir="build"):
     writer.newline()
 
     # Build targets for each source file
-    extn_pattern = r"\.(" + "|".join(extn) + ")$"
     object_files = []
     for source_file in source_files:
         object_file = (
-            build_dir + "/" + re.sub(extn_pattern, ".o",
-                                     os.path.basename(source_file))
-        )
+            build_dir + "/" + os.path.basename(source_file) + ".o")
         object_files.append(object_file)
         writer.build(
             object_file,
@@ -233,7 +230,7 @@ def generate_board_h(target_header):
 def add_preprocessor_macro(macro, value):
     global CFLAGS
     CFLAGS = CFLAGS + " -D" + macro + "=" + value
-    print(CFLAGS)
+    # print(CFLAGS)
 
 
 def parse_target_configs(target_conf):
@@ -295,6 +292,6 @@ python_files_list = find_files_with_extns(WORKSPACE_DIR, extn=".py")
 
 get_target_info()
 generate_ninja_rules()
-generate_ninja_build(c_source_files, extn=["c", "s", "S"], build_dir=BUILD_DIR)
+generate_ninja_build(c_source_files, build_dir=BUILD_DIR)
 
 print("Generated ninja.build file!")

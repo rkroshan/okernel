@@ -1,7 +1,7 @@
 ## ninja build
 *	Prerequisite
 	```
-	sudo apt install ninja-build qemu-system-aarch64 doxygen doxygen-doc doxygen-gui doxygen-latex clang-format llvm clang
+	sudo apt install -y ninja-build qemu-system-aarch64 doxygen doxygen-doc doxygen-gui doxygen-latex clang-format llvm clang gdb-multiarch
 
 	```
 	```
@@ -18,84 +18,101 @@
 
 # armv8-bare-metal
 *	Purpose
-	* It's a bare-metal study in QEMU (-M virt -cpu cortex-a57)
+	* It's a bare-metal study in QEMU (-M virt -cpu max)
 	* _start -> main()
 *	How to run
 	```
-	# export PATH inclueding your cross compile tool
-	export PATH=$PATH:/home/ryanyao/work/buildroot-2017.11-rc1/output/host/bin
-	make run
+	./run.sh
 	```
 *	GDB (Terminal 1/2 should be in the same directory.)
 	```
 	Terminal 1:
-		qemu-system-aarch64 -machine virt -cpu cortex-a57 -kernel kernel.elf -nographic -S -s
+		qemu-system-aarch64 -machine virt,gic-version=3 -m 4G -smp cpus=4 -cpu max -nographic -gdb tcp::5416 -S -kernel build/kernel.elf
 	Terminal 2:
-		aarch64-linux-gnu-gdb kernel.elf --tui
-		target remote :1234
+		gdb-multiarch -x gdx
 	```
 *	Timer IRQ works. It assert Timer_Handler() every 1 sec.
 	```
-	timer_test
-	gic_v3_initialize()
-	init_gicd()
-	init_gicc()
-	CurrentEL = 0x00000000 00000004
-	RVBAR_EL1 = 0x00000000 00000000
-	VBAR_EL1 = 0x00000000 40000000
-	DAIF = 0x00000000 000003C0
-	Disable the timer, CNTV_CTL_EL0 = 0x00000000 00000000
-	System Frequency: CNTFRQ_EL0 = 0x00000000 03B9ACA0
-	Current counter: CNTVCT_EL0 = 0x00000000 0001BA16
-	Assert Timer IRQ after 1 sec: CNTV_CVAL_EL0 = 0x00000000 03BB66B6
-	Enable the timer, CNTV_CTL_EL0 = 0x00000000 00000001
-	Enable IRQ, DAIF = 0x00000000 00000340
-	
-	Exception Handler! (AARCH64_EXC_IRQ_SPX)
-	IRQ found: 0x00000000 0000001B
-	timer_handler:
-			Disable the timer, CNTV_CTL_EL0 = 0x00000000 00000000
-			System Frequency: CNTFRQ_EL0 = 0x00000000 03B9ACA0
-			Current counter: CNTVCT_EL0 = 0x00000000 03BD40D5
-			Assert Timer IRQ after 0x00000000 00000001 sec(s): CNTV_CVAL_EL0 = 0x00000000 0776ED75
-			Enable the timer, CNTV_CTL_EL0 = 0x00000000 00000001
-	
-	Exception Handler! (AARCH64_EXC_IRQ_SPX)
-	IRQ found: 0x00000000 0000001B
-	timer_handler:
-			Disable the timer, CNTV_CTL_EL0 = 0x00000000 00000000
-			System Frequency: CNTFRQ_EL0 = 0x00000000 03B9ACA0
-			Current counter: CNTVCT_EL0 = 0x00000000 0778E288
-			Assert Timer IRQ after 0x00000000 00000001 sec(s): CNTV_CVAL_EL0 = 0x00000000 0B328F28
-			Enable the timer, CNTV_CTL_EL0 = 0x00000000 00000001
+	[1.145950]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[1.146521]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[1.146642]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[1.146745]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[1.146841]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[1.146985]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[1.147144]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[1.147247]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[1.147344]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[1.147429]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[1.147549]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[1.147643]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[2.147265]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[2.147425]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[2.147539]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[2.147637]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[2.147733]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[2.147832]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[2.147949]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[2.148041]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[2.148129]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[2.148221]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[2.148329]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[2.148411]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[3.148702]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[3.148807]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[3.148959]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[3.149060]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[3.149128]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[3.149233]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[3.149319]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[3.149430]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[3.149544]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[3.149627]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[3.149720]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[3.149828]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[4.150009]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[4.150105]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[4.150172]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[4.150281]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[4.150380]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[4.150497]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[4.150615]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[4.150708]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[4.150800]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[4.150888]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[4.150997]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[4.151087]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[5.151265]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[5.151384]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[5.151481]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[5.151567]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[5.151687]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[5.151795]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[5.151875]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[5.151966]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[5.152077]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[5.152149]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[5.152229]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[5.152314]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[6.152749]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[6.152862]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[6.152958]CPU2 [INFO] platform_timer_handler: irq: 1Bh
+	[6.153060]CPU3 [INFO] platform_timer_handler: irq: 1Bh
+	[6.153161]CPU1 [INFO] platform_timer_handler: irq: 1Bh
+	[6.153273]CPU0 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[6.153354]CPU2 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[6.153463]CPU3 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[6.153565]CPU1 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
+	[6.153680]CPU2 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[6.153758]CPU3 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[6.153857]CPU1 [INFO] Enable the timer, CNTV_CTL_EL0 = 1h
+	[7.154020]CPU0 [INFO] platform_timer_handler: irq: 1Bh
+	[7.154191]CPU0 [INFO] System Frequency: CNTFRQ_EL0 = 62500000
 	```
-
-# Issues
-*	GDB can't step into main() if miss lable: main_label in boot.S (commit b72c6a8cc7033a4fed89b57f75826d201466179f)
-*	(Fixed, 2018/07/19) Timer IRQ doesn't work(commit b72c6a8cc7033a4fed89b57f75826d201466179f)
-	*	We can see CNTV_CTL_EL0[2]:ISTATUS changes, but irq_handler doesn't be called.
-	*	And we also didn't see any changes in ISR_EL1. 
-	* 	Solved in commit 2aaa0bff7516e84e01acd10d8de64189839d9d51.
-*	(Fixed, 2018/07/05) It should be some problems in vector_table_el1 in boot.S. If I set "b hang" in other vectors except lower_el_aarch64_irq, the uart outpt will be incorrect or system hang (commit b72c6a8cc7033a4fed89b57f75826d201466179f)
-	*	Root cause should be the stack memory is overlaid. Now, we set stack_top = 0x41000000 to avoid it. (commit c14d653fca24387b5996285f45f0fef2906cb2c9)
-
 
 # Reference
 *	Project
-	*   [aarch64-bare-metal-qemu](https://github.com/freedomtan/aarch64-bare-metal-qemu)
-	*   [raspberrypi](https://github.com/eggman/raspberrypi)
-	*   [sample-tsk-sw](https://github.com/takeharukato/sample-tsk-sw)
-*   QEMU
-	*   [QEMU version 2.12.50 User Documentation](https://qemu.weilnetz.de/doc/qemu-doc.html)
-*   Makefile
-	*   [Makefile範例教學](http://maxubuntu.blogspot.com/2010/02/makefile.html)
-	*   [GNU 的連結工具 (ld, nm, objdump, ar)](http://sp1.wikidot.com/gnulinker)
-	*   [GCC Command-Line Options](http://tigcc.ticalc.org/doc/comopts.html)
-	*   [LD Index](https://sourceware.org/binutils/docs/ld/LD-Index.html#LD-Index)
-*	ARM
-	*	[Arm® Compiler armasm User Guide](http://www.keil.com/support/man/docs/armclang_asm/armclang_asm_chunk708094578.htm)
+	*   [armv8-bare-metal](https://github.com/NienfengYao/armv8-bare-metal)
 	*	Application Note Bare-metal Boot Code for ARMv8-A Processors Version 1.0
 	*	ARM® Architecture Reference Manual ARMv8, for ARMv8-A architecture profile Beta
-	*	ARM® Cortex®-A57 MPCore™ Processor Revision: r1p0 Technical Reference Manual
 	*	ARM® Cortex®-A Series Version: 1.0 Programmer’s Guide for ARMv8-A
 	*	ARM® Generic Interrupt Controller Architecture Specification GIC architecture version 3.0 and version 4.0

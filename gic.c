@@ -4,7 +4,7 @@
 #include "board.h"
 #include "exception.h"
 #include "gic_registers.h"
-#include "uart.h"
+#include "kernel.h"
 #include <stddef.h>
 #include <stdint.h>
 // ------------------------------------------------------------
@@ -20,7 +20,7 @@ static uint16_t max_spi_support = 0; /*it is the maximum number of interrupts
 static uint16_t max_espi_support = 0;
 
 /*TODO support for extended spi/ppi?*/
-static isr_struct_t isr_table[GIC_SPI_MAX];
+static isr_struct_t isr_table[MAX_CPUS][GIC_SPI_MAX];
 
 /**
  * @brief Sets the address of the Distributor
@@ -49,7 +49,7 @@ void setGICRAddr(void *rdist) {
     index++;
   }
   gic_max_rd = index + 1;
-  printk("Max Number of GIC_RDIST: %u\n", gic_max_rd);
+  printk_debug("Max Number of GIC_RDIST: %u\n", gic_max_rd);
 }
 
 /**
@@ -81,10 +81,10 @@ uint32_t get_cpulocal_gicr_index() {
  *
  */
 uint16_t getSupportedSPINum() {
-  printk("GICD TYPER: %b\n", atomic_load_relaxed(&gic_dist->GICD_TYPER));
+  printk_debug("GICD TYPER: %b\n", atomic_load_relaxed(&gic_dist->GICD_TYPER));
   uint8_t itlines = (atomic_load_relaxed(&gic_dist->GICD_TYPER) & (0x1f));
   uint16_t spisnum = (((itlines + 1) << 5) - 1); // 32*(itlines + 1) -1
-  printk("Number of SPIs supported: %u\n", spisnum);
+  printk_debug("Number of SPIs supported: %u\n", spisnum);
   return spisnum >= 1020 ? 1020 : spisnum;
 }
 
@@ -98,7 +98,7 @@ uint16_t getSupportedESPINum() {
   {
     uint8_t eitlines = (atomic_load_relaxed(&gic_dist->GICD_TYPER) >> 27);
     uint16_t espinum = (((eitlines + 1) << 5) + 4095);
-    printk("Number of ESPIs supported: %u\n", espinum);
+    printk_debug("Number of ESPIs supported: %u\n", espinum);
     return espinum;
   } else {
     return 0;
@@ -172,8 +172,8 @@ void gicr_enable(uint32_t gicr_indx) {
   waker = waker & ~((uint32_t)1 << 1);
   atomic_store_relaxed(&gic_rdist[gicr_indx].lpis.GICR_WAKER, waker);
   (void)gicr_wait_for_write(gicr_indx);
-  printk("gicr_indx %x waker: %b\n", gicr_indx,
-         atomic_load_relaxed(&gic_rdist[gicr_indx].lpis.GICR_WAKER));
+  printk_debug("gicr_indx %x waker: %b\n", gicr_indx,
+               atomic_load_relaxed(&gic_rdist[gicr_indx].lpis.GICR_WAKER));
   while ((atomic_load_relaxed(&gic_rdist[gicr_indx].lpis.GICR_WAKER) &
           (1 << 2)) != 0) {
   }
@@ -184,13 +184,13 @@ void gicr_enable(uint32_t gicr_indx) {
  *
  */
 void init_gicr() {
-  printk("init_gicr()\n");
+  printk_debug("init_gicr()\n");
   /*set gicr address*/
   setGICRAddr((void *)GIC_REDIST);
   /*get the cpu local index for gicr*/
   uint32_t gicr_indx = get_cpulocal_gicr_index();
-  printk("GICR Reset Val: %b\n",
-         atomic_load_relaxed(&gic_rdist[gicr_indx].lpis.GICR_CTLR));
+  printk_debug("GICR Reset Val: %b\n",
+               atomic_load_relaxed(&gic_rdist[gicr_indx].lpis.GICR_CTLR));
 
   /*disable all SGIs PPIs*/
   atomic_store_relaxed(&gic_rdist[gicr_indx].sgis.GICR_ICENABLER[0],
@@ -226,12 +226,12 @@ void init_gicr() {
  *
  */
 void init_gicc(void) {
-  printk("init_gicc()\n");
+  printk_debug("init_gicc()\n");
   /*affinity routing is enabled so we can access cpu interface registers via
    * system register access*/
   uint64_t icc_sre_el1;
   ASM_MRS_ICC_SRE_EL1(icc_sre_el1);
-  printk("GIC ICC Reset Val: %b\n", icc_sre_el1);
+  printk_debug("GIC ICC Reset Val: %b\n", icc_sre_el1);
 
   /*if system register access is disabled we will assert to enable it
   Also we disable IRQ and FIQ bypass so that every interrupt go through GIC
@@ -273,11 +273,11 @@ void init_gicc(void) {
  * @return
  */
 void init_gicd(void) {
-  printk("init_gicd()\n");
+  printk_debug("init_gicd()\n");
   /*set GIC Addr*/
   setGICDAddr((void *)GIC_BASE);
-  printk("GICD Reset Val: %b\n",
-         atomic_load_relaxed(&gic_dist->GICD_IROUTER[32]));
+  printk_debug("GICD Reset Val: %b\n",
+               atomic_load_relaxed(&gic_dist->GICD_IROUTER[32]));
   /*we are setting interrupts in a way that even if DS is set to 0/1
   all interrupts should be treated as NS G1 interrupts*/
 
@@ -533,8 +533,20 @@ void gic_deactivate_interrupt(irq_t irq) {
  * @return
  */
 void gic_v3_initialize(void) {
-  printk("gic_v3_initialize()\n");
+  printk_debug("gic_v3_initialize()\n");
   init_gicd();
+  init_gicr();
+  init_gicc();
+}
+
+/*
+ * @brief Initialize GIC V3 IRQ controller for secondary cores
+ *
+ * @param None
+ * @return
+ */
+void gic_v3_initialize_secondary(void) {
+  printk_debug("gic_v3_initialize_secondary()\n");
   init_gicr();
   init_gicc();
 }
@@ -547,12 +559,24 @@ void gic_v3_initialize(void) {
 irq_t gic_find_pending_irq() { return (uint32_t)gic_acknowledge_irq(); }
 
 /**
- * @brief intialise interrupt controller
+ * @brief core0 intialise interrupt controller
  *
  */
-void init_interrupt_controller(void) {
+void primary_init_interrupt_controller(void) {
 #ifdef GIC_V3
   gic_v3_initialize();
+#else
+#error "gic_v3 interrupt controller is implemented as of now"
+#endif
+}
+
+/**
+ * @brief secondary core intialise interrupt controller
+ *
+ */
+void secondary_init_interrupt_controller(void) {
+#ifdef GIC_V3
+  gic_v3_initialize_secondary();
 #else
 #error "gic_v3 interrupt controller is implemented as of now"
 #endif
@@ -568,21 +592,23 @@ void init_interrupt_controller(void) {
  */
 uint8_t register_interrupt_isr(irq_t irq, isr_t isr, void *data) {
   uint8_t ret;
+  uint64_t cpuid = get_current_cpuid();
 
   if (irq >= GIC_SPI_MAX) {
     ret = EINVALID;
-    printk("Failed to register isr due to invalid irq : %x\n", irq);
+    printk_error("Failed to register isr due to invalid irq : %x\n", irq);
     goto out;
   }
 
-  if (isr_table[irq].isr != NULL) {
+  if (isr_table[cpuid][irq].isr != NULL) {
     ret = EINVALID;
-    printk("Failed to register isr, isr already register for irq: %x\n", irq);
+    printk_error("Failed to register isr, isr already register for irq: %x\n",
+                 irq);
     goto out;
   }
 
-  isr_table[irq].isr = isr;
-  isr_table[irq].data = data;
+  isr_table[cpuid][irq].isr = isr;
+  isr_table[cpuid][irq].data = data;
   ret = ESUCCESS;
 
 out:
@@ -598,20 +624,21 @@ out:
  */
 uint8_t get_registered_isr(irq_t irq, isr_struct_t *isr) {
   uint8_t ret;
+  uint64_t cpuid = get_current_cpuid();
   if (irq >= GIC_SPI_MAX) {
     ret = EINVALID;
     isr->isr = NULL;
-    printk("get_registered_isr: Failed: irq invalid: %x\n", irq);
+    printk_error("get_registered_isr: Failed: irq invalid: %x\n", irq);
     goto out;
   }
 
-  if (isr_table[irq].isr == NULL) {
+  if (isr_table[cpuid][irq].isr == NULL) {
     ret = EINVALID;
-    printk("get_registered_isr: Failed: no isr registered: %x\n", irq);
+    printk_error("get_registered_isr: Failed: no isr registered: %x\n", irq);
     goto out;
   }
 
-  *isr = isr_table[irq];
+  *isr = isr_table[cpuid][irq];
   ret = ESUCCESS;
 
 out:
